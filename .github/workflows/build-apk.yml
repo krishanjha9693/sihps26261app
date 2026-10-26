@@ -1,0 +1,68 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web application
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: npm run build
+
+      - name: Add Android platform if not present
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Ensure Camera and File Access Permissions
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ]; then
+            if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
+              echo "Injecting CAMERA permission into $MANIFEST"
+              sed -i '/<\/manifest>/i \    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />' "$MANIFEST"
+            fi
+          fi
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Build Android Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vericampus-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

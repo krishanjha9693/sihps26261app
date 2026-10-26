@@ -1,0 +1,10 @@
+{
+  "name": "Remix Remix VeriCampus AI",
+  "description": "A premium, AI-powered platform for professional document verification, seamless case management, and precise institutional decision-making.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
